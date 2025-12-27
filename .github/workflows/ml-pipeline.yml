@@ -76,7 +76,7 @@ jobs:
         
     - name: Generate Diabetes datasets
       run: |
-        PYTHONPATH=. python3 src/generate_diabetes_versions.py --version 1
+        PYTHONPATH=. python3 src/generate_diabetes_versions.py --version v1
       
     - name: Validate data schema
       run: |
