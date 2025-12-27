@@ -89,10 +89,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         
@@ -108,7 +108,7 @@ jobs:
         
     - name: Run data acquisition
       run: |
-        PYTHONPATH=. python3 src/generate_diabetes_versions.py --version 1
+        PYTHONPATH=. python3 src/generate_diabetes_versions.py --version v1
         
     - name: Run data processing
       run: |
@@ -127,7 +127,7 @@ jobs:
         PYTHONPATH=. python3 src/evaluate.py --dataset diabetes
         
     - name: Upload metrics
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ml-metrics
         path: |
@@ -135,7 +135,7 @@ jobs:
           plots/
           
     - name: Upload model
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: trained-model
         path: models/
@@ -148,10 +148,10 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       
     - name: Download metrics
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ml-metrics
         path: metrics/
