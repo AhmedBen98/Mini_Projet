@@ -1,0 +1,68 @@
+stages:
+  data_acquisition:
+    cmd: python src/data_acquisition.py
+    params:
+      - dataset.name
+    outs:
+      - data/raw/dataset.csv
+
+  data_processing:
+    cmd: python src/data_processing.py
+    deps:
+      - data/raw/dataset.csv
+      - src/data_processing.py
+    params:
+      - dataset.test_size
+      - dataset.val_size
+      - dataset.random_state
+      - preprocessing
+    outs:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+      - data/processed/scaler.pkl
+
+  feature_engineering:
+    cmd: python src/feature_engineering.py
+    deps:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+      - src/feature_engineering.py
+    params:
+      - feature_engineering
+    outs:
+      - data/processed/train_engineered.csv
+      - data/processed/val_engineered.csv
+      - data/processed/test_engineered.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - data/processed/train_engineered.csv
+      - data/processed/val_engineered.csv
+      - src/train.py
+    params:
+      - dataset.name
+      - model_diabetes
+      - mlflow
+    outs:
+      - models/model.pkl
+    metrics:
+      - metrics/train_metrics.json:
+          cache: false
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - data/processed/test_engineered.csv
+      - models/model.pkl
+      - src/evaluate.py
+    params:
+      - evaluation
+    metrics:
+      - metrics/test_metrics.json:
+          cache: false
+    plots:
+      - plots/confusion_matrix.png
+      - plots/feature_importance.png

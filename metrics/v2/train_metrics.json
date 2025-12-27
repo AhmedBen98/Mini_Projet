@@ -1,0 +1,17 @@
+{
+    "dataset": "diabetes",
+    "model_type": "GradientBoostingRegressor",
+    "training_time_seconds": 0.26897692680358887,
+    "cv_mean": 0.8978305204932596,
+    "cv_std": 0.02031313432098743,
+    "train_mse": 5.803669573770932,
+    "train_rmse": 2.4090806490798378,
+    "train_mae": 1.8471814821960755,
+    "train_r2": 0.9989910389987972,
+    "train_mape": 1.7092791159791294,
+    "val_mse": 384.3379376894548,
+    "val_rmse": 19.60453870126647,
+    "val_mae": 16.21583175704585,
+    "val_r2": 0.9383003237359903,
+    "val_mape": 14.758653897814714
+}
