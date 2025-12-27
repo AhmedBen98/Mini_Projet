@@ -55,102 +55,70 @@ class DiabetesDataGenerator:
         logger.info(f"Original dataset: {len(df)} samples, {len(df.columns)} features")
         return df
 
+    def _add_bmi_category(self, df, df_enriched):
+        """Add BMI category feature"""
+        bmi_mean, bmi_std = df['bmi'].mean(), df['bmi'].std()
+        df_enriched['bmi_category'] = df['bmi'].apply(
+            lambda x: 'Underweight' if x < bmi_mean - bmi_std
+            else 'Normal' if x < bmi_mean
+            else 'Overweight' if x < bmi_mean + bmi_std
+            else 'Obese'
+        )
+
+    def _add_bp_category(self, df, df_enriched):
+        """Add blood pressure category feature"""
+        bp_mean, bp_std = df['bp'].mean(), df['bp'].std()
+        df_enriched['bp_category'] = df['bp'].apply(
+            lambda x: 'Normal' if x < bp_mean
+            else 'Elevated' if x < bp_mean + bp_std
+            else 'High'
+        )
+
+    def _add_metabolic_features(self, df, df_enriched):
+        """Add cholesterol ratio and metabolic risk features"""
+        df_enriched['cholesterol_ratio'] = df['s2'] / (df['s3'] + 1e-5)
+
+        def normalize(col):
+            return (df[col] - df[col].min()) / (df[col].max() - df[col].min())
+
+        df_enriched['metabolic_risk'] = (
+            0.3 * normalize('bmi') + 0.2 * normalize('bp') + 0.2 * normalize('s2') +
+            0.2 * normalize('s5') + 0.1 * normalize('s6')
+        )
+
+    def _add_age_group(self, df, df_enriched):
+        """Add age group feature"""
+        age_mean, age_std = df['age'].mean(), df['age'].std()
+        df_enriched['age_group'] = df['age'].apply(
+            lambda x: 'Young' if x < age_mean - 0.5 * age_std
+            else 'Middle' if x < age_mean + 0.5 * age_std
+            else 'Senior'
+        )
+
+    def _add_diabetes_risk(self, df, df_enriched):
+        """Add diabetes risk level feature"""
+        q25, q50, q75 = df['target'].quantile([0.25, 0.50, 0.75])
+        df_enriched['diabetes_risk'] = df['target'].apply(
+            lambda x: 'Low' if x < q25
+            else 'Medium' if x < q50
+            else 'High' if x < q75
+            else 'Very High'
+        )
+
     def add_derived_features(self, df):
         """
         Ajoute des colonnes dérivées significatives au dataset
-
-        Nouvelles colonnes:
-        - bmi_category: Catégorie d'IMC basée sur les standards médicaux
-        - bp_category: Catégorie de pression artérielle
-        - cholesterol_ratio: Ratio LDL/HDL (facteur de risque cardiovasculaire)
-        - metabolic_risk: Score de risque métabolique composite
-        - age_group: Groupe d'âge
-        - diabetes_risk: Niveau de risque de diabète
         """
         logger.info("Adding derived features to dataset...")
-
         df_enriched = df.copy()
 
-        # 1. BMI Category (basé sur les valeurs normalisées)
-        # Convertir les valeurs normalisées en catégories approximatives
-        bmi_mean = df['bmi'].mean()
-        bmi_std = df['bmi'].std()
-
-        def categorize_bmi(bmi_norm):
-            if bmi_norm < bmi_mean - bmi_std:
-                return 'Underweight'
-            elif bmi_norm < bmi_mean:
-                return 'Normal'
-            elif bmi_norm < bmi_mean + bmi_std:
-                return 'Overweight'
-            else:
-                return 'Obese'
-
-        df_enriched['bmi_category'] = df['bmi'].apply(categorize_bmi)
-
-        # 2. Blood Pressure Category
-        bp_mean = df['bp'].mean()
-        bp_std = df['bp'].std()
-
-        def categorize_bp(bp_norm):
-            if bp_norm < bp_mean:
-                return 'Normal'
-            elif bp_norm < bp_mean + bp_std:
-                return 'Elevated'
-            else:
-                return 'High'
-
-        df_enriched['bp_category'] = df['bp'].apply(categorize_bp)
-
-        # 3. Cholesterol Ratio (LDL/HDL) - Important risk factor
-        # s2 = LDL, s3 = HDL
-        df_enriched['cholesterol_ratio'] = df['s2'] / (df['s3'] + 1e-5)
-
-        # 4. Metabolic Risk Score (composite de plusieurs facteurs)
-        # Normalisation entre 0 et 1 puis moyenne pondérée
-        df_enriched['metabolic_risk'] = (
-            0.3 * ((df['bmi'] - df['bmi'].min()) / (df['bmi'].max() - df['bmi'].min())) +
-            0.2 * ((df['bp'] - df['bp'].min()) / (df['bp'].max() - df['bp'].min())) +
-            0.2 * ((df['s2'] - df['s2'].min()) / (df['s2'].max() - df['s2'].min())) +  # LDL
-            0.2 * ((df['s5'] - df['s5'].min()) / (df['s5'].max() - df['s5'].min())) +  # Triglycérides
-            0.1 * ((df['s6'] - df['s6'].min()) / (df['s6'].max() - df['s6'].min()))    # Glucose
-        )
-
-        # 5. Age Group
-        age_mean = df['age'].mean()
-        age_std = df['age'].std()
-
-        def categorize_age(age_norm):
-            if age_norm < age_mean - 0.5 * age_std:
-                return 'Young'
-            elif age_norm < age_mean + 0.5 * age_std:
-                return 'Middle'
-            else:
-                return 'Senior'
-
-        df_enriched['age_group'] = df['age'].apply(categorize_age)
-
-        # 6. Diabetes Risk Level (basé sur la target)
-        target_q25 = df['target'].quantile(0.25)
-        target_q50 = df['target'].quantile(0.50)
-        target_q75 = df['target'].quantile(0.75)
-
-        def categorize_risk(target_val):
-            if target_val < target_q25:
-                return 'Low'
-            elif target_val < target_q50:
-                return 'Medium'
-            elif target_val < target_q75:
-                return 'High'
-            else:
-                return 'Very High'
-
-        df_enriched['diabetes_risk'] = df['target'].apply(categorize_risk)
+        self._add_bmi_category(df, df_enriched)
+        self._add_bp_category(df, df_enriched)
+        self._add_metabolic_features(df, df_enriched)
+        self._add_age_group(df, df_enriched)
+        self._add_diabetes_risk(df, df_enriched)
 
         logger.info(f"Added 6 derived features. Total columns: {len(df_enriched.columns)}")
-        logger.info(
-            f"New features: bmi_category, bp_category, cholesterol_ratio, metabolic_risk, age_group, diabetes_risk")
-
         return df_enriched
 
     def generate_synthetic_samples(self, df_original, n_samples, variation_level='medium'):
